@@ -1,0 +1,21 @@
+<?xml version="1.0"?>
+<package format="3">
+  <name>crane_ocp</name>
+  <version>0.1.0</version>
+  <description>
+    The acados layer, once: the C++ binding every generated solver in this stack
+    is opened through, and the Python export boilerplate every exporter repeats.
+  </description>
+  <maintainer email="maintainers@example.invalid">Architecture maintainers</maintainer>
+  <license>Apache-2.0</license>
+
+  <buildtool_depend>ament_cmake</buildtool_depend>
+  <!-- No rosdep key resolves this; the image installs acados to /usr/local and
+       CMake finds its config there without a hint. Same resolution crane_mpc and
+       crane_planning already record. -->
+  <depend>acados</depend>
+
+  <export>
+    <build_type>ament_cmake</build_type>
+  </export>
+</package>
