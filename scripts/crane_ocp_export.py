@@ -54,17 +54,20 @@ UNSHIPPED_SUFFIXES = ("_hess.c",)
 
 def import_crane_symbolic(package: Path):
     """
-    Import the shared symbolic model out of `crane_model`'s source tree.
+    Import the shared symbolic model, `crane_model.symbolic`.
 
-    `crane_model`'s `scripts/` is not installed (issue 070's notes), so the module
-    is reached by path from a sibling package's own location. Returns the module;
-    the caller binds it to whatever name it uses.
+    It lives in the installed Python package because `crane_planning` builds its
+    OCP from it at runtime. An export run before `crane_model` is on the path --
+    a from-scratch build of a sibling package -- falls back to the source tree.
+    Returns the module; the caller binds it to whatever name it uses.
     """
-    model_package = package.parent / "crane_model"
-    sys.path.insert(0, str(model_package / "scripts"))
-    import crane_symbolic
+    try:
+        from crane_model import symbolic
+    except ImportError:
+        sys.path.insert(0, str(package.parent / "crane_model"))
+        from crane_model import symbolic
 
-    return crane_symbolic
+    return symbolic
 
 
 def default_descriptions(package: Path) -> Path:
