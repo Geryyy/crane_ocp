@@ -81,7 +81,7 @@ void AcadosSolver::set_cost(int stage, const char * field, double * values)
 
 void AcadosSolver::set_constraint(int stage, const char * field, double * values)
 {
-  ocp_nlp_constraints_model_set(config_, dims_, in_, stage, field, values);
+  ocp_nlp_constraints_model_set(config_, dims_, in_, out_, stage, field, values);
 }
 
 void AcadosSolver::set_option(const char * field, void * value)
@@ -91,7 +91,7 @@ void AcadosSolver::set_option(const char * field, void * value)
 
 void AcadosSolver::set_iterate(int stage, const char * field, double * values)
 {
-  ocp_nlp_out_set(config_, dims_, out_, stage, field, values);
+  ocp_nlp_out_set(config_, dims_, out_, in_, stage, field, values);
 }
 
 void AcadosSolver::get_iterate(int stage, const char * field, double * values) const
