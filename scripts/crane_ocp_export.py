@@ -14,7 +14,7 @@ row order, no dimension. Each exporter still writes its own `build_ocp` and its
 own generated header, which is the whole of what makes them two exporters.
 
 It is imported by path rather than installed, exactly as both exporters already
-import `crane_symbolic`::
+import `crane_symbolic`. Deliberately -- `CMakeLists.txt` records why::
 
     OCP_PACKAGE = PACKAGE.parent / "crane_ocp"
     sys.path.insert(0, str(OCP_PACKAGE / "scripts"))
