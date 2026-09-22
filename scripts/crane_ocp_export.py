@@ -31,7 +31,6 @@ import tempfile
 from pathlib import Path
 
 import casadi as ca
-import numpy as np
 import yaml
 from acados_template import AcadosOcpSolver
 
@@ -83,22 +82,6 @@ def read_ros_parameters(path: Path, node: str) -> dict:
     if not isinstance(parameters, dict):
         raise ValueError(f"{path}: {node}.ros__parameters is not a mapping")
     return parameters
-
-
-def chamber_forces(model, relief_pa: float, actuated_dof: int) -> tuple:
-    """
-    Return `(extend, retract)`: what each cylinder carries at the relief pressure.
-
-    `wiki/hydraulics.md` §4's `F_i = A_A p_A - A_B p_B`, asked of the shared model
-    rather than restated, with the two chambers pressurised one at a time. Both
-    exporters condition their force rows by the **larger** of the two, so a row
-    the planner conditions and a row the MPC conditions are the same number.
-    """
-    pressure = np.full(actuated_dof, float(relief_pa))
-    zero = np.zeros(actuated_dof)
-    extend = np.array(ca.evalf(model.chamber_force(pressure, zero))).ravel()
-    retract = np.array(ca.evalf(model.chamber_force(zero, pressure))).ravel()
-    return extend, retract
 
 
 def write_output_map(model, name: str, tree: Path) -> None:
