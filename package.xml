@@ -10,11 +10,13 @@
   <license>Apache-2.0</license>
 
   <buildtool_depend>ament_cmake</buildtool_depend>
+  <buildtool_depend>ament_cmake_python</buildtool_depend>
   <!-- `scripts/crane_ocp_export.py` reaches acados through `acados_template` off
        the image's interpreter, not through CMake: no rosdep key resolves this
        and nothing here find_packages it. Same resolution crane_mpc and
        crane_planning already record. -->
   <exec_depend>acados</exec_depend>
+  <exec_depend>python3-yaml</exec_depend>
 
   <export>
     <build_type>ament_cmake</build_type>
