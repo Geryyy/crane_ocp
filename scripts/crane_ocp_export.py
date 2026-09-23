@@ -25,6 +25,7 @@ from __future__ import annotations
 
 import argparse
 import filecmp
+import hashlib
 import shutil
 import sys
 import tempfile
@@ -122,11 +123,41 @@ def write_output_map(model, name: str, tree: Path) -> None:
     generator.generate(str(tree) + "/")
 
 
+def normalised(path: Path) -> str:
+    """Read a file with trailing whitespace stripped and one final newline."""
+    body = "\n".join(line.rstrip() for line in path.read_text().splitlines())
+    return body.rstrip("\n") + "\n"
+
+
 def normalise(path: Path) -> None:
     """Strip trailing whitespace and leave exactly one final newline."""
-    text = path.read_text()
-    body = "\n".join(line.rstrip() for line in text.splitlines())
-    path.write_text(body.rstrip("\n") + "\n")
+    path.write_text(normalised(path))
+
+
+def tree_digest(tree: Path, reviewed) -> str:
+    """
+    Digest the generated files that are not committed, standing in for them.
+
+    A description or hydraulics edit lands in the CasADi bodies and nowhere
+    else, so committing those was the only thing catching it -- 80 % of the
+    tree, read by nobody. Same guard, sixteen characters. Over `normalised`
+    content so `finalise` afterwards cannot move it; `reviewed` excluded, they
+    are compared directly and the header cannot digest itself. Dropping a name
+    from `reviewed` does not put it in here if it is written after this runs
+    (README, the header) -- it would then be guarded by nothing.
+    """
+    skip = set(reviewed)
+    digest = hashlib.sha256()
+    for path in sorted(tree.rglob("*")):
+        if not path.is_file():
+            continue
+        name = path.relative_to(tree).as_posix()
+        if name in skip:
+            continue
+        digest.update(name.encode())
+        digest.update(b"\0")  # else name `ab` + "c\n" collides with `abc` + "\n"
+        digest.update(normalised(path).encode())
+    return digest.hexdigest()[:16]
 
 
 def prune(tree: Path) -> None:
@@ -177,11 +208,21 @@ def finalise(output: Path, readme: str) -> None:
             normalise(path)
 
 
-def compare(left: Path, right: Path) -> list:
-    """Return every path under `left` that `right` does not match byte for byte."""
+def compare(left: Path, right: Path, only=None) -> list:
+    """
+    Return every path under `left` that `right` does not match byte for byte.
+
+    `only` narrows to the committed files; the rest reaches the comparison
+    through `tree_digest`, which one of them carries.
+    """
     differences = []
-    names = {path.relative_to(left) for path in left.rglob("*") if path.is_file()}
-    names |= {path.relative_to(right) for path in right.rglob("*") if path.is_file()}
+    if only is not None:
+        names = {Path(name) for name in only}
+    else:
+        names = {path.relative_to(left) for path in left.rglob("*") if path.is_file()}
+        names |= {
+            path.relative_to(right) for path in right.rglob("*") if path.is_file()
+        }
     for name in sorted(names):
         one = left / name
         other = right / name
@@ -213,7 +254,15 @@ def add_arguments(parser: argparse.ArgumentParser, package: Path) -> None:
     )
 
 
-def run(output: Path, check: bool, generate, script: str, clean=True, note="") -> int:
+def run(
+    output: Path,
+    check: bool,
+    generate,
+    script: str,
+    clean=True,
+    note="",
+    reviewed=None,
+) -> int:
     """
     Rewrite `output`, or regenerate into a scratch tree and diff it.
 
@@ -231,7 +280,7 @@ def run(output: Path, check: bool, generate, script: str, clean=True, note="") -
     with tempfile.TemporaryDirectory() as scratch:
         fresh = Path(scratch) / "generated"
         generate(fresh)
-        differences = compare(output, fresh)
+        differences = compare(output, fresh, reviewed)
     if differences:
         print(
             f"the checked-in solver is not what `{script}` writes today. "
